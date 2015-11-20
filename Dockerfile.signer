@@ -36,6 +36,5 @@ RUN go install \
     -ldflags "-w -X ${NOTARYPKG}/version.GitCommit=`git rev-parse --short HEAD` -X ${NOTARYPKG}/version.NotaryVersion=`cat NOTARY_VERSION`" \
     ${NOTARYPKG}/cmd/notary-signer
 
-
 ENTRYPOINT [ "notary-signer" ]
 CMD [ "-config=fixtures/signer-config-local.json" ]

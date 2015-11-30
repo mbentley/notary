@@ -99,28 +99,28 @@ MySQL storage.  You can only override keys whose values are strings or numbers.
 
 #### Running a Docker image
 
-Get the official Docker image, which comes with [some defaults](
-https://github.com/docker/notary/blob/master/cmd/notary-server/config.json).
+Get the official Docker image, which comes with [some sane defaults](
+https://github.com/docker/notary/blob/master/fixtures/server-config-local.json),
+which include a remote trust service but local in-memory backing store.
+
 You can override the default configuration with environment variables.
-For example, if you wanted to run it with just a local signing service and
-memory store (not recommended for production):
+For example, if you wanted to run it with just a local signing service instead
+(not recommended for production):
 
 ```
 $ docker pull docker.io/docker/notary-server
 $ docker run -p "4443:4443" \
-	-e NOTARY_SERVER_TRUST_SERVICE_TYPE=local \
-	-e NOTARY_SERVER_STORAGE_BACKEND=""
-	-e NOTARY_SERVER_STORAGE_DB_URL=""
+	-e NOTARY_SERVER_TRUST_SERVICE_TYPE=local
 	notary-server
 ```
 
 Alternately, you can run the image with your own configuration file entirely.
-The docker image loads the config file from `/opt/notary-server/config.json`,
-so you can mount a directory with your config file (named `config.json`)
-at `/opt/notary-server`:
+You just need to mount your configuration directory, and then pass the path to
+that configuration file as an argument to the `docker run` command:
 
 ```
-$ docker run -p "4443:4443" -v /path/to/config/dir:/opt/notary-server notary-server
+$ docker run -p "4443:4443" -v /path/to/config/dir/on/host:/path/in/container \
+	notary-server -config=/path/in/container/config.json
 ```
 
 #### Running the binary
@@ -157,7 +157,7 @@ know that something is wrong.
 
 ### Ops features
 
-Notary server provides the following endpoints for operational friendliness:
+Notary Server provides the following features for operational friendliness:
 
 1. A health endpoint at `/_notary_server/health` which returns 200 and a
 	body of `{}` if the server is healthy, and a 500 with a map of

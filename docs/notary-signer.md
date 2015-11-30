@@ -59,27 +59,29 @@ MySQL storage.  You can only override keys whose values are strings or numbers.
 
 #### Running a Docker image
 
-Get the official Docker image, which comes with [some defaults](
-https://github.com/docker/notary/blob/master/cmd/notary-signer/config.json).
+Get the official Docker image, which comes with [some sane defaults](
+https://github.com/docker/notary/blob/master/fixtures/signer-config-local.json),
+which uses a local in-memory backing store (not recommended for production).
+
 You can override the default configuration with environment variables.
-For example, if you wanted to run it with your own MySQL DB and a different
-logging level:
+For example, if you wanted to run it with your own DB
+(recommended for production):
 
 ```
 $ docker pull docker.io/docker/notary-signer
-$ docker run -p "4443:4443" \
-	-e NOTARY_SIGNER_LOGGING_LEVEL=info \
+$ docker run -p "4444:4444" \
+	-e NOTARY_SIGNER_STORAGE_DB_BACKEND="mysql" \
 	-e NOTARY_SIGNER_STORAGE_DB_URL="myuser:mypass@tcp(my-db)/dbName"
 	notary-signer
 ```
 
 Alternately, you can run the image with your own configuration file entirely.
-The docker image loads the config file from `/opt/notary-signer/config.json`,
-so you can mount a directory with your config file (named `config.json`)
-at `/opt/notary-signer`:
+You just need to mount your configuration directory, and then pass the path to
+that configuration file as an argument to the `docker run` command:
 
 ```
-$ docker run -p "4443:4443" -v /path/to/config/dir:/opt/notary-signer notary-signer
+$ docker run -p "4444:4444" -v /path/to/config/dir/on/host:/path/in/container \
+	notary-signer -config=/path/in/container/config.json
 ```
 
 #### Running the binary
@@ -105,3 +107,10 @@ The attacker can prevent Notary Signer from signing timestap metadata from
 Notary Server and return invalid public key IDs when the Notary Server
 requests it.  This means an attacker can execute a denial of service attack
 that prevents the Notary Server from being able to update any metadata.
+
+### Ops features
+
+Notary Signer provides the following features for operational friendliness:
+
+1. A [Bugsnag](https://bugsnag.com) hook for error logs, if a Bugsnag
+	configuration is provided.

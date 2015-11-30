@@ -17,8 +17,8 @@ An example (full) server configuration file.
 	"server": {
 		"http_addr": ":4444",
 		"grpc_addr": ":7899",
-		"cert_file": "./fixtures/notary-signer.crt",
-		"key_file": "./fixtures/notary-signer.key",
+		"tls_cert_file": "./fixtures/notary-signer.crt",
+		"tls_key_file": "./fixtures/notary-signer.key",
 		"client_ca_file": "./fixtures/notary-server.crt"
 	},
 	"logging": {
@@ -26,7 +26,13 @@ An example (full) server configuration file.
 	},
 	"storage": {
 		"backend": "mysql",
-		"db_url": "dockercondemo:dockercondemo@tcp(notarymysql:3306)/dockercondemo"
+		"db_url": "user:pass@tcp(notarymysql:3306)/databasename"
+	},
+	"reporting": {
+		"bugsnag": {
+			"api_key": "c9d60ae4c7e70c4b6c4ebd3e8056d2b8",
+			"release_stage": "production"
+		}
 	}
 }
 ```
@@ -39,8 +45,8 @@ Example:
 "server": {
 	"http_addr": ":4444",
 	"grpc_addr": ":7899",
-	"cert_file": "./fixtures/notary-signer.crt",
-	"key_file": "./fixtures/notary-signer.key",
+	"tls_cert_file": "./fixtures/notary-signer.crt",
+	"tls_key_file": "./fixtures/notary-signer.key",
 	"client_ca_file": "./fixtures/notary-server.crt"
 }
 ```
@@ -83,18 +89,18 @@ Example:
 		</td>
 	</tr>
 	<tr>
-		<td valign="top"><code>key_file</code></td>
+		<td valign="top"><code>tls_key_file</code></td>
 		<td valign="top">yes</td>
 		<td valign="top">The path to the private key to use for
-			HTTPS. The path is relative to the directory where
-			notary-signer is run.</td>
+			HTTPS. The path is relative to the directory of the
+			configuration file.</td>
 	</tr>
 	<tr>
-		<td valign="top"><code>cert_file</code></td>
+		<td valign="top"><code>tls_cert_file</code></td>
 		<td valign="top">yes</td>
 		<td valign="top">The path to the certificate to use for
-			HTTPS. The path is relative to the directory where
-			notary-signer is run.</td>
+			HTTPS. The path is relative to the directory of the
+			configuration file.</td>
 	</tr>
 	<tr>
 		<td valign="top"><code>client_ca_file</code></td>
@@ -103,21 +109,21 @@ Example:
 			mutual authentication. If provided, any clients connecting to
 			Notary Signer will have to have a client certificate signed by
 			this root. If not provided, mutual authentication will not be
-			required. The path is relative to the directory where
-			notary-signer is run.</td>
+			required. The path is relative to the directory of the
+			configuration file.</td>
 	</tr>
 </table>
 
 ## `storage` section (required)
 
-We only support MySQL, currently, and it must be provided.
+We only support MySQL or an in-memory store, currently.
 
 Example:
 
 ```json
 "storage": {
 	"backend": "mysql",
-	"db_url": "dockercondemo:dockercondemo@tcp(notarymysql:3306)/dockercondemo"
+	"db_url": "user:pass@tcp(notarymysql:3306)/databasename"
 }
 ```
 
@@ -130,11 +136,13 @@ Example:
 	<tr>
 		<td valign="top"><code>backend</code></td>
 		<td valign="top">yes</td>
-		<td valign="top">Must be <code>"mysql"</code></td>
+		<td valign="top">Must be <code>"mysql"</code> or <code>"memory"</code>.
+			If <code>"memory"</code> is selected, the <code>db_url</code>
+			is ignored.</td>
 	</tr>
 	<tr>
 		<td valign="top"><code>db_url</code></td>
-		<td valign="top">yes</td>
+		<td valign="top">yes if not <code>memory</code></td>
 		<td valign="top">The URL used to access the DB, which includes both the
 			endpoint the username/credentials</td>
 	</tr>
@@ -143,17 +151,20 @@ Example:
 
 ## `logging` section (optional)
 
-The logging section sets the log level of the server.  If not provided, or if
-any part of this section is invalid, the server defaults to an ERROR logging
-level.
+The logging section sets the log level of the server.  If it is not provided
+or invalid, the signer defaults to an ERROR logging level.
 
 Example:
 
 ```json
 "logging": {
-	"level": 2
+	"level": "debug"
 }
 ```
+
+Note that this entire section is optional.  However, if you would like to
+specify a different log level, then you need the required parameters
+below to configure it.
 
 <table>
 	<tr>
@@ -164,9 +175,52 @@ Example:
 	<tr>
 		<td valign="top"><code>level</code></td>
 		<td valign="top">yes</td>
-		<td valign="top">An integer between 0 and 5, representing values
-			<code>"debug"</code> (5), <code>"info"</code> (4),
-			<code>"warning"</code> (3), <code>"error"</code>(2),
-			<code>"fatal"</code> (1), or <code>"panic"</code>(0)</td>
+		<td valign="top">One of <code>"debug"</code>, <code>"info"</code>,
+			<code>"warning"</code>, <code>"error"</code>, <code>"fatal"</code>,
+			or <code>"panic"</code></td>
+	</tr>
+</table>
+
+
+## `reporting` section (optional)
+
+The reporting section contains any configuration for useful for running the
+service, such as reporting errors. Currently, we only support reporting errors
+to [Bugsnag](https://bugsnag.com).
+
+See [bugsnag-go](https://github.com/bugsnag/bugsnag-go/) for more information
+about these configuration parameters.
+
+```json
+"reporting": {
+	"bugsnag": {
+		"api_key": "c9d60ae4c7e70c4b6c4ebd3e8056d2b8",
+		"release_stage": "production"
+	}
+}
+```
+
+Note that this entire section is optional.  However, if you would like to
+report errors to Bugsnag, then you need to include a `bugsnag` subsection,
+along with the required parameters below, to configure it.
+
+**Bugsnag reporting:**
+
+<table>
+	<tr>
+		<th>Parameter</th>
+		<th>Required</th>
+		<th>Description</th>
+	</tr>
+	<tr>
+		<td valign="top"><code>api_key</code></td>
+		<td valign="top">yes</td>
+		<td>The BugSnag API key to use to report errors.</td>
+	</tr>
+	<tr>
+		<td valign="top"><code>release_stage</code></td>
+		<td valign="top">yes</td>
+		<td>The current release stage, such as "production".  You can
+			use this value to filter errors in the Bugsnag dashboard.</td>
 	</tr>
 </table>
